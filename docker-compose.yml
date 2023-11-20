@@ -4,18 +4,18 @@ services:
   # Frontend Streamlit App
   frontend:
     build:
-      context: ./FE  # path to the directory containing the Dockerfile of frontend
+      context: ./fe  # path to the directory containing the Dockerfile of frontend
     ports:
       - "8501:8501"  # port to open for Streamlit
-    image: FE:latest  # name of the image to be created
+    image: fe:latest  # name of the image to be created
     container_name: frontend  # name of the container to be created
   # Backend FastAPI App
   backend:
     build:
-      context: ./BE  # path to the directory containing the Dockerfile of backend
+      context: ./be  # path to the directory containing the Dockerfile of backend
     ports:
       - "8000:8000"  # port to open for FastAPI
-    image: BE:latest  # name of the image to be created
+    image: be:latest  # name of the image to be created
     container_name: backend
     depends_on:
       - frontend  # backend depends on frontend

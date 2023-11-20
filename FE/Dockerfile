@@ -5,15 +5,15 @@ FROM python:3.8
 WORKDIR /app
 
 # copy folder FE into container
-COPY FE/ .
+COPY . .
 # COPY requirements.txt .
 # COPY your_streamlit_app.py .
-
+RUN pip install --upgrade pip
 # install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # publish port 8501
 EXPOSE 8501
 
 # run app
-CMD ["streamlit", "run", "your_streamlit_app.py"]
+CMD ["streamlit", "run", "fe.py"]

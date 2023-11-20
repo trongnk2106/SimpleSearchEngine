@@ -5,13 +5,13 @@ FROM python:3.8
 WORKDIR /app
 
 # Copy forder BE vào trong container
-COPY BE/ .
+COPY . .
 
 # COPY requirements.txt .
 # COPY your_fastapi_app.py .
-
+RUN pip install --upgrade pip
 # install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # publish port 8000
 EXPOSE 8000
