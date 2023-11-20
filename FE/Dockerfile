@@ -16,4 +16,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8501
 
 # run app
-CMD ["streamlit", "run", "fe.py"]
+CMD ["streamlit", "run", "FE.py"]

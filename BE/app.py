@@ -64,8 +64,8 @@ async def search_and_rank(
     sort_by_cites: bool = Query(False, description="Sắp xếp theo số lần trích dẫn")
 ):
     # Gọi hàm crawler
-    results = google_scholar_crawler(query, year_filter, num_results)
-    # results = Crawler.handlecrawl(textinput = query, number_of_result=num_results)
+    # results = google_scholar_crawler(query, year_filter, num_results)
+    results = Crawler.handlecrawl(textinput = query, number_of_result=num_results)
     # print(result2)
     # print(results)
 
