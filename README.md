@@ -13,8 +13,6 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
    docker compose up
    ```
 
-### Dockerize 
-
 ## Backend (FastAPI)
 - Module `crawler`: Contains functions essential for scraping data from Google Scholar using BeautifulSoup and storing it into MongoDB.
 - Module `ranking`: Implements the ranking of authors based on a content-based algorithm with TF-IDF.
@@ -33,7 +31,12 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
 ## Data Updates
 - Data can be updated on demand or can be set to update automatically using scheduling tools, such as cron jobs on a Linux operating system or Windows.
 
-
+##Technical 
+- Fastapi
+- BeautifulSoup
+- streamlit
+- TF-IDF
+- docker 
 
 ## Author
 - Author's Trong
