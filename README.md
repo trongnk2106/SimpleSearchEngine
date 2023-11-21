@@ -13,6 +13,7 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
    docker compose up
    ```
 
+### Dockerize 
 
 ## Backend (FastAPI)
 - Module `crawler`: Contains functions essential for scraping data from Google Scholar using BeautifulSoup and storing it into MongoDB.
