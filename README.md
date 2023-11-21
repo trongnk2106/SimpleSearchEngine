@@ -4,18 +4,10 @@
 This application utilizes FastAPI for the backend, Streamlit for the frontend, and MongoDB for data storage. It provides the capability to search and rank authors based on their publications from Google Scholar.
 
 ## Installation
-1. Install the necessary Python libraries by running the command:
-    ```bash
-    pip install -r requirements.txt
-    ```
-2. Run the FastAPI backend:
-    ```bash
-    uvicorn main:app --reload
-    ```
-3. Run the Streamlit frontend:
-    ```bash
-    streamlit run frontend.py
-    ```
+1. Git clone this repository:
+   ```git clone 
+   ```
+
 
 ## Backend (FastAPI)
 - Module `crawler`: Contains functions essential for scraping data from Google Scholar using BeautifulSoup and storing it into MongoDB.
@@ -33,16 +25,13 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
 3. Results will be displayed on the user interface.
 
 ## Data Updates
-- Data can be updated on demand or can be set to update automatically using scheduling tools, such as cron jobs on a Linux operating system.
+- Data can be updated on demand or can be set to update automatically using scheduling tools, such as cron jobs on a Linux operating system or Windows.
 
-## Requirements
-- Python 3.8 and above
-- MongoDB
-- Libraries listed in `requirements.txt`
+
 
 ## Author
-- Author's Name
-- Contact: email@example.com
+- Author's Trong
+- Contact: trongntt2002@gmail.com
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
