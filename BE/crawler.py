@@ -1,7 +1,7 @@
 import requests, os, datetime, argparse
 from bs4 import BeautifulSoup
 # import matplotlib.pyplot as plt
-import pandas as pd
+
 from time import sleep
 import warnings
 import os
@@ -35,30 +35,6 @@ ROBOT_KW=['unusual traffic from your computer network', 'not a robot']
 ABSTRACT = ["core-container", "c-article-section__content", "article open abstract", 'html-p','abstract']
 
 class Crawler:
-    # def __init__(self, textinput, number_of_result , start_year = STARTYEAR, end_year = ENDYEAR):
-        
-        # self.textinput = textinput
-        # self.number_of_result = number_of_result
-        # self.start_year = start_year
-        # self.end_year = end_year
-        
-        # self.links = []
-        # self.title = []
-        # self.citations = []
-        # self.year = []
-        # self.author = []
-        # self.venue = []
-        # self.publisher = []
-        # self.rank = [0]
-        
-    
-    @staticmethod
-    def get_args():
-       
-        return Crawler.textinput, Crawler.number_of_result, Crawler.start_year, Crawler.end_year
-        # return keyword, number_of_result , path, start_year, end_year
-        
-
 
     def setup_driver(self):
         try : 
@@ -105,7 +81,14 @@ class Crawler:
 
         return c.encode('utf-8')
 
-    def get_cities(self, content : str) -> int:
+    def get_cities(content):
+        '''
+        Args:
+            content : str , parse html content
+        return:
+            int : number of cities
+        '''
+      
         out = 0
         for char in range(0, len(content)):
             if content[char: char +9 ] == "Cited by ":
@@ -116,7 +99,15 @@ class Crawler:
                 out = content[init:end]
         return int(out)
 
-    def get_year(self, content:str) -> int:
+    def get_year(content):
+        
+        '''
+            Args:
+                content : str , parse html content
+            return:
+                year : int , year of article
+        '''
+        # print(content)
         for char in range(0, len(content)):
             if content[char] == "-":
                 out = content[char-5: char-1]
@@ -125,17 +116,23 @@ class Crawler:
             out = 0
         return int(out)
 
-    def get_article_content(self, url):
-        # Gửi yêu cầu HTTP để truy cập trang chi tiết của từng kết quả
+    def get_article_content(self, url : setup_driver) -> str:
+        
+        '''
+            Args: 
+                url : str , url of article
+            Return:
+                str : content of article
+        '''
+       #http request
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         response = requests.get(url, headers=headers)
-        # response = requests.get(url)
+    
         try :
             
             if response.status_code == 200:
                 article_soup = BeautifulSoup(response.text, 'html.parser')
-
-                # Ví dụ: In nội dung của trang chi tiết
+                # get article content
                 article_content = article_soup.find('div', class_='c-article-body')  
                 # print(f:\n{article_content.get_text() if article_content else 'N/A'}")
             # else:
@@ -145,11 +142,83 @@ class Crawler:
             print(e)
             print("Error when get article content")
             return None
+        
+
+
+    def check_exist(query:str):
+        '''
+            Args:
+                query : str , query keyword
+            Return:
+                bool : True if query exist in database
+        '''
+
+        res = collection.find_one({"query": query})
+        if res:
+            return res
+        return None  
+    
+    def get_titlepaper():
+        pass
+    
+    def get_hindex(url_link):
+        res = []
+        list_url_authors = url_link.find_all('a')
+  
+        for url_lk in list_url_authors:
+            url = url_lk.get('href')
+            if not url.startswith('https:'):
+                author_url = f'https://scholar.google.com{url}'
+                # print(author_url)
+            # request
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+            response = requests.get(author_url, headers=headers)
+            # print(author_url)
+            try :
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    author_name = soup.find('div', id='gsc_prf_in').get_text()
+                    rows = soup.find_all('tr')
+                    h_index = rows[2].find_all('td')[1].get_text()
+                    i_10_index = rows[3].find_all('td')[1].get_text()
+                    total_ref = rows[1].find_all('td')[1].get_text()
+                    
+                    table = soup.find('tbody', id='gsc_a_b').find_all('tr', class_="gsc_a_tr")
+                    title_paper = []
+                    for tb in table:
+                        title_paper.append(tb.find('td', class_='gsc_a_t').find('a').get_text())
+                    data = {
+                        "author_name": author_name,
+                        "h_index": h_index,
+                        "i_10_index": i_10_index,
+                        "total_ref": total_ref,
+                        "title_paper": title_paper,
+                        "author_url": author_url
+                    }
+                res.append(data)
+               
+                    # return h_index
+                    # print(author_name)
+            except Exception as e:
+                pass
+            
+        return res
 
     @staticmethod
-    def handlecrawl(textinput, number_of_result , start_year = STARTYEAR, end_year = ENDYEAR):
+    def handlecrawl(textinput, number_of_result , start_year = STARTYEAR, end_year = ENDYEAR, isudpate = False, list_update = []):
         
-        # textinput, number_of_result , start_year, end_year
+        '''
+        Args: 
+            textinput : str , query keyword
+            number_of_result : int , number of result
+            start_year : int , start year
+            end_year : int , end year
+            isudpate : bool , update database
+            list_update : list , list of query keyword
+        Return:
+            list : list of result content information of article by query keyword
+        '''
 
         if start_year :
             GSCHOLAR_MAIN_URL = GSCHOLAR_URL + STARTYEAR_URL.format(start_year)
@@ -160,91 +229,196 @@ class Crawler:
             GSCHOLAR_MAIN_URL = GSCHOLAR_URL + ENDYEAR_URL.format(end_year)
         
         session = requests.Session()
+        res_check_exist = None
         
-        
-        rank = [0]
-        
-        result = []
-        for i in range(0, number_of_result, 10):
-            
-            url = GSCHOLAR_MAIN_URL.format(str(i), textinput.replace(' ', '+'))
-            
-            page = session.get(url)
-            
-            c = page.content
-        
-            if any(kw in c.decode("ISO-8859-1") for kw in ROBOT_KW):
-                print('Robot check!')
-                try :
-                    c = Crawler.get_content_with_selenium(url)
-                except Exception as e:
-                    print(e)
-                    
-            soup = BeautifulSoup(c, 'html.parser', from_encoding='utf-8')
-            
-            divs = soup.findAll("div", {"class" : "gs_or"})
-            
-            for div in divs:
-                try :
-                    links=div.find('h3').find('a')['href']
-                except :
-                    links="Look manually at: " + url
-                    
-                try :
-                    title=div.find('h3').find('a').text
-                except:
-                    title="Not found title"
+        if isudpate:
+            for query_ in list_update:
+                for i in range(0, number_of_result, 10):
                 
-                try:
-                    citations=Crawler.get_cities(str(div.format_string))
-                except:
-                    warnings.warn("Citation not found")
-                    citations=0
+                    url = GSCHOLAR_MAIN_URL.format(str(i), query_.replace(' ', '+'))
                     
-                try :
-                    year=Crawler.get_year(div.find(div, {"class" : "gs_a"}).text)
-                except : 
-                    warnings.warn("Year not found")
-                    year=0
+                    page = session.get(url)
+                    
+                    c = page.content
+                
+                    if any(kw in c.decode("ISO-8859-1") for kw in ROBOT_KW):
+                        print('Robot check!')
+                        try :
+                            c = Crawler.get_content_with_selenium(url)
+                        except Exception as e:
+                            print(e)
+                            
+                    soup = BeautifulSoup(c, 'html.parser', from_encoding='utf-8')
+                    
+                    divs = soup.findAll("div", {"class" : "gs_or"})
+                    
+                    for div in divs:
+                        try :
+                            links=div.find('h3').find('a')['href']
+                        except :
+                            links="Look manually at: " + url
+                            
+                        try :
+                            title=div.find('h3').find('a').text
+                        except:
+                            title="Not found title"
+                        
+                        try:
+                            citations=Crawler.get_cities(str(div.format_string))
+                        except:
+                            warnings.warn("Citation not found")
+                            citations=0
+                            
+                        try :
+                            year=Crawler.get_year(div.find('div', class_='gs_a').get_text())
+                        except : 
+                            warnings.warn("Year not found")
+                            year=0
 
-                try:
-                    author=div.find(div, {"class" : "gs_a"}).text
-                except:
-                    warnings.warn("Author not found")
-                    author = "Not found"
+                        try:
+                            author=div.find('div', class_='gs_a').get_text()
+                        except:
+                            warnings.warn("Author not found")
+                            author = "Not found"
+                        
+                        try : 
+                            publisher=div.find('div', class_='gs_a').get_text().split("-")[-1]
+                        
+                        except:
+                            warnings.warn("Publisher not found")
+                            publisher="Not found"
+                            
+                        try :
+                            venue=div.find('div', class_='gs_a').get_text()[-2].split(",")[-1]
+                        except:
+                            warnings.warn("Venue not found")
+                            venue="Not found"
+                        try :
+                            abstract = div.find('div', class_='gs_rs')
+                        except:
+                            warnings.warn("Abstract not found")
+                            abstract="Not found"
+                        
+                        try : 
+                            # print(Crawler.get_hindex(div.find('div', class_='gs_a').find_all('a')['href']))
+                            res_listauthor = Crawler.get_hindex(div.find('div', class_='gs_a'))
+                        except:
+                            res_listauthor= []
+                        data = {
+                            "link_paper" :links,
+                            "title" : title,
+                            "citations" : citations,
+                            "year" : year,
+                            "author" : author,
+                            "venue" : venue,
+                            "publisher" : publisher,
+                            "abstract" : abstract.get_text() if abstract else "",
+                            "list_author" : res_listauthor
+                        }
+                        collection.update_one({"query": query_}, {"$push": {"results": data}}, upsert=True)
+            
+            return "Update sucessfully"
+            
+        if not isudpate :
+            res_check_exist = Crawler.check_exist(textinput)
+        if res_check_exist:
+            return res_check_exist['results']
+        else:
+            rank = [0]
+            result = []
+            for i in range(0, number_of_result, 10):
                 
-                try : 
-                    publisher=div.find(div, {"class" : "gs_a"}).text.split("-")[-1]
+                url = GSCHOLAR_MAIN_URL.format(str(i), textinput.replace(' ', '+'))
                 
-                except:
-                    warnings.warn("Publisher not found")
-                    publisher="Not found"
+                page = session.get(url)
+                
+                c = page.content
+            
+                if any(kw in c.decode("ISO-8859-1") for kw in ROBOT_KW):
+                    print('Robot check!')
+                    try :
+                        c = Crawler.get_content_with_selenium(url)
+                    except Exception as e:
+                        print(e)
+                        
+                soup = BeautifulSoup(c, 'html.parser', from_encoding='utf-8')
+                
+                divs = soup.findAll("div", {"class" : "gs_or"})
+                
+                for div in divs:
+                    try :
+                        links=div.find('h3').find('a')['href']
+                    except :
+                        links="Look manually at: " + url
+                        
+                    try :
+                        title=div.find('h3').find('a').text
+                    except:
+                        title="Not found title"
                     
-                try :
-                    venue=div.find(div, {"class" : "gs_a"}).text.split("-")[-2].split(",")[-1]
-                except:
-                    warnings.warn("Venue not found")
-                    venue="Not found"
-                try :
-                    abstract = div.find('div', class_='gs_rs')
-                except:
-                    warnings.warn("Abstract not found")
-                    abstract="Not found"
-                
-                data = {
-                    "link" :links,
-                    "title" : title,
-                    "citations" : citations,
-                    "year" : year,
-                    "author" : author,
-                    "venue" : venue,
-                    "publisher" : publisher,
-                    "abstract" : abstract.get_text() if abstract else ""
+                    try:
+                        citations=Crawler.get_cities(str(div.format_string))
+                    except:
+                        warnings.warn("Citation not found")
+                        citations=0
+                        
+                    try :
+                        year=Crawler.get_year(div.find('div', class_='gs_a').get_text())
+                    except : 
+                        warnings.warn("Year not found")
+                        year=0
+
+                    try:
+                        author=div.find('div', class_='gs_a').get_text()
+                    except:
+                        warnings.warn("Author not found")
+                        author = "Not found"
                     
-                }
-            collection.update_one({"query": textinput}, {"$push": {"results": data}}, upsert=True)
-            result.append(data)
-            sleep(0.5)
-        return result
+                    try : 
+                        publisher=div.find('div', class_='gs_a').get_text().split("-")[-1]
+                    
+                    except:
+                        warnings.warn("Publisher not found")
+                        publisher="Not found"
+                        
+                    try :
+                        venue=div.find('div', class_='gs_a').get_text()[-2].split(",")[-1]
+                    except:
+                        warnings.warn("Venue not found")
+                        venue="Not found"
+                    try :
+                        abstract = div.find('div', class_='gs_rs')
+                    except:
+                        warnings.warn("Abstract not found")
+                        abstract="Not found"
+                    
+                    try : 
+                        # print(Crawler.get_hindex(div.find('div', class_='gs_a').find_all('a')['href']))
+                        res_listauthor = Crawler.get_hindex(div.find('div', class_='gs_a'))
+                    except:
+                        res_listauthor= []
+                    data = {
+                        "link_paper" :links,
+                        "title" : title,
+                        "citations" : citations,
+                        "year" : year,
+                        "author" : author,
+                        "venue" : venue,
+                        "publisher" : publisher,
+                        "abstract" : abstract.get_text() if abstract else "",
+                        "list_author" : res_listauthor
+                    }
+                    collection.update_one({"query": textinput}, {"$push": {"results": data}}, upsert=True)
+                    result.append(data)
+                sleep(0.5)
+            return result
+        
+    
 
-
+    @staticmethod
+    def update_database():
+        #get query on database
+        list_query = collection.find()
+        list_query = [query['query'] for query in list_query]
+        Crawler.handlecrawl( number_of_result= 50, isudpate=True, list_update=list_query)
+        

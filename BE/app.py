@@ -6,91 +6,134 @@ from rank_bm25 import BM25Okapi
 import re
 from time import sleep
 from crawler import Crawler
-
+import string
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 app = FastAPI()
+tok = ['!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~', ':', '?']
+stop_words = set(stopwords.words('english'))
+stop_words.update(tok)
+vectorizer = TfidfVectorizer()
 
-# collection = DB.get_instance().collection
+def preprocessing(input_string):
 
-# Hàm để thực hiện crawler trang Google Scholar với các tham số lọc
-def google_scholar_crawler(query, year_filter=None, num_results=None):
-    base_url = "https://scholar.google.com/scholar"
-    params = {'q': query}
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-  
-    # Thêm các tham số lọc nếu được chọn
-    if year_filter:
-        params['as_ylo'] = year_filter
-    if num_results:
-        params['num'] = num_results
+    '''
+        This module is preprocessing input string with remove stopword
+        Args:
+            input_string: string
+        Returns:
+            result_string: string
+    '''
+    
+    words = word_tokenize(input_string)
 
-    response = requests.get(base_url, params=params, headers=headers)
-    sleep(0.5)
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        results = []
-
-        # Duyệt qua các kết quả tìm kiếm và lấy thông tin
-        for result in soup.find_all('div', class_='gs_ri'):
-            title = result.find('h3', class_='gs_rt').get_text()
-            authors = result.find('div', class_='gs_a').get_text()
-            abstract = result.find('div', class_='gs_rs')
-            link = result.find('a')['href']
-
-            # Lưu thông tin vào MongoDB
-            article_data = {
-                "title": title,
-                "authors": authors,
-                "abstract": abstract.get_text() if abstract else '',
-                "link": link
-            }
-            # collection.update_one({"query": query}, {"$push": {"results": article_data}}, upsert=True)
-
-            results.append({'title': title, 'author': authors, 'abstract': abstract.get_text() if abstract else '', 'link': link})
-
-        return results
-    else:
-        return None
+    filtered_words = [word for word in words if word.lower() not in stop_words]
 
 
+    result_string = ' '.join(filtered_words)
 
-# Route để xử lý yêu cầu tìm kiếm và ranking sử dụng BM25
+    return result_string
+
+
+def content_base(data, query):
+    
+    '''
+        This module is ranking author by content base with tfidf
+        Args:
+            data: list
+            query: string
+        Returns:
+            recommended_authors: list
+    '''
+
+    author_ranking = []
+    for dt in data:
+        for d in dt:
+            author_ranking.append(d)
+    
+    for i in author_ranking:
+        i["title_paper"] = preprocessing(' '.join(i["title_paper"]))
+    
+    documents = [entry['title_paper'] for entry in author_ranking]
+    
+    #vectorize documents
+    tfidf_matrix = vectorizer.fit_transform(documents)
+    # vectorize query
+    query_vector = vectorizer.transform([preprocessing(query)])
+    # calculate similarity between query and documents
+    query_similarity = cosine_similarity(query_vector, tfidf_matrix).flatten()
+    
+    # scale total ref to 0-1    
+    summ_ref = sum([int(ref['total_ref']) for ref in author_ranking])
+    
+    for i in range(len(author_ranking)):
+        author_ranking[i]['total_ref'] = float(author_ranking[i]['total_ref']) / summ_ref
+    # ranking
+    for i in range(len(author_ranking)):
+        author_ranking[i]['query_similarity'] = query_similarity[i]
+        # calculate total score with weight for query similarity, total ref, h_index, i_10_index
+        author_ranking[i]['total_score'] = float(author_ranking[i]['h_index']) + 0.5 * float(author_ranking[i]['i_10_index']) + 0.001 * float(author_ranking[i]['total_ref']) + 0.6 * float(author_ranking[i]['query_similarity'])
+
+    # sort list author by total score
+    recommended_authors = sorted(author_ranking, key=lambda x: x['total_score'], reverse=True)
+ 
+    return recommended_authors
+
+
+
+
+#route for search, ranking author by contentbase with tfidf
 @app.get("/search/{query}", response_class=HTMLResponse)
 async def search_and_rank(
     query: str,
-    year_filter: str = Query(None, description="Năm"),
-    num_results: int = Query(None, description="Số lượng kết quả tìm kiếm"),
-    sort_by_cites: bool = Query(False, description="Sắp xếp theo số lần trích dẫn")
+    year_filter: str = Query(None, description="Year"),
+    num_results: int = Query(None, description="Number of results"),
+    sort_by_cites: bool = Query(False, description="Sort by citations")
 ):
-    # Gọi hàm crawler
-    # results = google_scholar_crawler(query, year_filter, num_results)
+    
     results = Crawler.handlecrawl(textinput = query, number_of_result=num_results)
-    # print(result2)
-    # print(results)
+    
 
     if not results:
-        return HTMLResponse(content="<p>Không thể kết nối đến Google Scholar.</p>")
+        return HTMLResponse(content="<p>Not Connected Gooogle Scholar.</p>")
 
-    # Tính toán BM25 cho tất cả các documents
-    contents = [result['abstract'] for result in results]
-    tokenized_contents = [content.split() for content in contents]
-    bm25 = BM25Okapi(tokenized_contents)
-
-    # Tính toán điểm BM25 giữa query và các documents
-    scores = bm25.get_scores(query.split())
-
-    # Sắp xếp kết quả dựa trên điểm BM25
-    ranked_results = [{'result': result, 'bm25_score': score} for result, score in zip(results, scores)]
-    ranked_results = sorted(ranked_results, key=lambda x: x['bm25_score'], reverse=True)
-
-    # Tạo HTML để hiển thị kết quả
-    html_content = f"<h2>Kết quả tìm kiếm và ranking cho '{query}' (Thuật toán: BM25):</h2>"
+    #get list author
+    authorlist = [result['list_author'] for result in results]
+    
+    #out ranking author
+    ranking_author = content_base(authorlist, query)
+    
+    authorname = [name['author_name'] for name in ranking_author]
+    
+    #get list paper
+    ranked_results = []
+    for name_ in authorname:
+        for result in results:
+            listauthor = result['list_author']
+            for aut in listauthor:
+                if aut['author_name'] == name_:
+                    if result not in ranked_results:
+                        ranked_results.append(result)
+                
+    #format html content to display
+    html_content = f"<h4>List researcher in that field:</h4>"
+    for idex, item in enumerate(ranking_author[1:]):
+        html_content += f" <p><strong>{idex}. </strong><a href= '{item['author_url']}' target='_blank'/> <br> Researcher : {item['author_name']}</a> </p>"
+    html_content +=  f"<h4>List of papers related to the search topic:</h4>"
+    # for idx, result in enumerate(ranked_results, start=1):
+    print(ranked_results)
     for idx, result in enumerate(ranked_results, start=1):
-        html_content += f"<p><strong>{idx}. </strong>{result['result']['title']}<br>Tác giả: {result['result']['author']}<br>Link: <a href='{result['result']['link']}' target='_blank'>{result['result']['link']}</a><br>BM25 Score: {result['bm25_score']}</p>"
+        html_content += f"<p><strong>{idx}. </strong>{result['title']}<br>Author: {result['author']}<br>Link: <a href='{result['link_paper']}' target='_blank'>{result['link_paper']}</a></p>"
     
     return HTMLResponse(content=html_content)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+#router for update database
+@app.get("/update")
+async def update_database():
+    Crawler.update_database()
+    return {"message": "Update database successfully!"}
+
