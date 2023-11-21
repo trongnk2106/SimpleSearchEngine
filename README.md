@@ -5,7 +5,8 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
 
 ## Installation
 1. Git clone this repository:
-   ```git clone 
+   ```
+   git clone https://github.com/trongnk2106/SimpleSearchEngine.git
    ```
 
 
