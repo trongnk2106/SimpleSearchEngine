@@ -8,6 +8,10 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
    ```
    git clone https://github.com/trongnk2106/SimpleSearchEngine.git
    ```
+2. Docker Compose :
+   ```
+   docker compose up
+   ```
 
 
 ## Backend (FastAPI)
