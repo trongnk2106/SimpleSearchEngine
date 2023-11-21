@@ -31,7 +31,7 @@ This application utilizes FastAPI for the backend, Streamlit for the frontend, a
 ## Data Updates
 - Data can be updated on demand or can be set to update automatically using scheduling tools, such as cron jobs on a Linux operating system or Windows.
 
-##Technical 
+## Technical 
 - Fastapi
 - BeautifulSoup
 - streamlit
