@@ -3,10 +3,8 @@
 ## Introduction
 This application utilizes FastAPI for the backend, Streamlit for the frontend, and MongoDB for data storage. It provides the capability to search and rank authors based on their publications from Google Scholar.
 
-## Demo :
-```
-https://youtu.be/AWdssumpBrw
-```
+## [Demo](https://youtu.be/AWdssumpBrw) :
+
 ## Installation
 1. Git clone this repository:
    ```
