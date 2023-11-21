@@ -100,36 +100,38 @@ async def search_and_rank(
 
     if not results:
         return HTMLResponse(content="<p>Not Connected Gooogle Scholar.</p>")
-
-    #get list author
-    authorlist = [result['list_author'] for result in results]
-    
-    #out ranking author
-    ranking_author = content_base(authorlist, query)
-    
-    authorname = [name['author_name'] for name in ranking_author]
-    
-    #get list paper
-    ranked_results = []
-    for name_ in authorname:
-        for result in results:
-            listauthor = result['list_author']
-            for aut in listauthor:
-                if aut['author_name'] == name_:
-                    if result not in ranked_results:
-                        ranked_results.append(result)
-                
-    #format html content to display
-    html_content = f"<h4>List researcher in that field:</h4>"
-    for idex, item in enumerate(ranking_author[1:]):
-        html_content += f" <p><strong>{idex}. </strong><a href= '{item['author_url']}' target='_blank'/> <br> Researcher : {item['author_name']}</a> </p>"
-    html_content +=  f"<h4>List of papers related to the search topic:</h4>"
-    # for idx, result in enumerate(ranked_results, start=1):
-    print(ranked_results)
-    for idx, result in enumerate(ranked_results, start=1):
-        html_content += f"<p><strong>{idx}. </strong>{result['title']}<br>Author: {result['author']}<br>Link: <a href='{result['link_paper']}' target='_blank'>{result['link_paper']}</a></p>"
-    
-    return HTMLResponse(content=html_content)
+    try:
+        #get list author
+        authorlist = [result['list_author'] for result in results]
+        
+        #out ranking author
+        ranking_author = content_base(authorlist, query)
+        
+        authorname = [name['author_name'] for name in ranking_author]
+        
+        #get list paper
+        ranked_results = []
+        for name_ in authorname:
+            for result in results:
+                listauthor = result['list_author']
+                for aut in listauthor:
+                    if aut['author_name'] == name_:
+                        if result not in ranked_results:
+                            ranked_results.append(result)
+                    
+        #format html content to display
+        html_content = f"<h4>List researcher in that field:</h4>"
+        for idex, item in enumerate(ranking_author[1:]):
+            html_content += f" <p><strong>{idex}. </strong><a href= '{item['author_url']}' target='_blank'/> <br> Researcher : {item['author_name']}</a> </p>"
+        html_content +=  f"<h4>List of papers related to the search topic:</h4>"
+        # for idx, result in enumerate(ranked_results, start=1):
+        print(ranked_results)
+        for idx, result in enumerate(ranked_results, start=1):
+            html_content += f"<p><strong>{idx}. </strong>{result['title']}<br>Author: {result['author']}<br>Link: <a href='{result['link_paper']}' target='_blank'>{result['link_paper']}</a></p>"
+        
+        return HTMLResponse(content=html_content)
+    except:
+        return HTMLResponse(content="<p>Not Connected Gooogle Scholar.</p>")
 
 #router for update database
 @app.get("/update")
