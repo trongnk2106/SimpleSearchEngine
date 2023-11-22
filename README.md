@@ -1,4 +1,4 @@
-# SimpleSearchEngine# Google Scholar Crawler and Author Ranking
+## SimpleSearchEngine
 
 ## Introduction
 This application utilizes FastAPI for the backend, Streamlit for the frontend, and MongoDB for data storage. It provides the capability to search and rank authors based on their publications from Google Scholar.
